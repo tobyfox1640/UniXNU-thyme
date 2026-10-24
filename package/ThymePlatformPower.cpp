@@ -115,16 +115,18 @@ extern "C" void sheng_pmgr_run(void)
   if (!parent || parent != &ApplePMGR::gMetaClass || parent->getClassSize() != 0x4b8a8 ||
       !nubMeta || nubMeta->getClassSize() != 0x740) { thyme_pmgr_checkpoint(); return; }
   thyme_pmgr_observation[2] = parent->getClassSize();
-  // Register the class under the ApplePMGR kext, not under the kernel's own
-  // "__kernel__" pseudo-kmod: postModLoad() ends in myKext->addClass(), and the
-  // pseudo-kmod has no class set to add to (OSKext::addClass() then faults on a
-  // null field). The class really does belong to that kext, and the diagnostic
-  // run confirmed lookupKextWithIdentifier() resolves both identifiers.
-  void *handle = OSMetaClass::preModLoad("com.apple.driver.ApplePMGR");
-  if (!handle) { thyme_pmgr_checkpoint(); return; }
-  thyme_pmgr_static_init();
-  result = OSMetaClass::postModLoad(handle);
-  if (result) { thyme_pmgr_observation[1] = static_cast<uint32_t>(result); thyme_pmgr_checkpoint(); return; }
+  // Register the class only if the class dictionary does not know it yet.
+  // Registering an already known class makes postModLoad() take its
+  // duplicate-class path, whose report dereferences orig->reserved->kext (null
+  // for a pseudo-kmod) and faults; when the class is already there, the meta
+  // class is usable as is.
+  if (!lookup("ThymePlatformPower")) {
+    void *handle = OSMetaClass::preModLoad("com.apple.driver.ApplePMGR");
+    if (!handle) { thyme_pmgr_checkpoint(); return; }
+    thyme_pmgr_static_init();
+    result = OSMetaClass::postModLoad(handle);
+    if (result) { thyme_pmgr_observation[1] = static_cast<uint32_t>(result); thyme_pmgr_checkpoint(); return; }
+  }
   thyme_pmgr_observation[9] = ThymePlatformPower::gMetaClass.getInstanceCount();
   thyme_pmgr_observation[11] = nubMeta->getInstanceCount();
   ThymePlatformPower *provider = new ThymePlatformPower;
