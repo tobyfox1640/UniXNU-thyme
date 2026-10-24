@@ -1,0 +1,34 @@
+# Xiaomi Mi 10S (thyme) device repository.
+# SoC: SM8250-AC (Snapdragon 870) — kona platform, 8 GiB / 128 GiB tested unit.
+[board]
+name = "thyme"
+soc = "SM8250"
+description = "Xiaomi Mi 10S (thyme), Snapdragon 870"
+kit = "thyme"
+
+[kernel]
+defconfig = "thyme_defconfig"
+
+[firmware]
+config = "thyme"
+dsc = "Platforms/Xiaomi/thymePkg/thyme.dsc"
+fd = "Build/thymePkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
+packages = [
+  "{uefi}", "{uefi}/Platforms/Xiaomi", "{tree}/package", "{tree}/drivers/DarwinBoot", "{edk2}",
+  "{uefi}/Common/Mu", "{uefi}/Common/Mu_OEM_Sample",
+  "{uefi}/Silicon/Qualcomm", "{uefi}/Silicon/Silicium",
+]
+
+[firmware.defines]
+ENABLE_SECUREBOOT = "0"
+DEVICE_MODEL = "0"
+MEMORY_PROTECTION = "TRUE"
+SHIP_MODE = "FALSE"
+BUILDID_STRING = "thyme-menu-bringup"
+
+[bootimg.image]
+base = 0
+kernel_offset = 0x8000
+tags_offset = 0x1e00000
+pagesize = 4096
+header_version = 1

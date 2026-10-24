@@ -1,0 +1,11 @@
+# Minimal EFI baseline metadata for the thyme bring-up.
+schema = 1
+
+[kit]
+name = "thyme"
+version = "0.1.0"
+description = "Xiaomi Mi 10S minimal EFI baseline metadata"
+
+[match]
+arch = "AARCH64"
+fdt_compatible = ["qcom,kona"]
