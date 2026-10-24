@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile the generic platform expert against the actual source-kernel ABI."""
 import argparse
+import os
 import json
 from pathlib import Path
 import struct
@@ -75,8 +76,19 @@ if component in ('NativeVirtioBlock', 'NativeRamBlock', 'NativeUfs'):
     if args.verified_root_bundle:
         command += ['-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1']
 if component == 'NativeUfs':
+    # NATIVE_VERIFIED_BLOCK=1 serves reads only after every 4096-byte block matches
+    # an owner-signed policy, and refuses to publish the device without one. thyme
+    # has no policy closure yet (it needs the donor's signed volume image and
+    # keys), so CONFIG_XNU_THYME_VERIFIED_BLOCK=0 builds the unverified transport
+    # for bring-up: the reads are then served directly. Flip it back to 1 as soon
+    # as the real policies exist; nothing else in the driver changes.
+    verified_block = os.environ.get('XNU_THYME_VERIFIED_BLOCK', '1')
+    if verified_block not in ('0', '1'):
+        raise SystemExit('XNU_THYME_VERIFIED_BLOCK must be 0 or 1')
     command += ['-I', str(ROOT / 'kits/VerifiedRoot/include'), '-I', str(ROOT / 'drivers/NativeVirtioBlock'),
-                '-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-mgeneral-regs-only']
+                f'-DNATIVE_VERIFIED_BLOCK={verified_block}', '-mgeneral-regs-only']
+    if verified_block == '1':
+        command += ['-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1']
 if component=='NativeOfflineGPU':
     command += ['-I',str(ROOT/'drivers/NativeVirtioConsole')]
 if component in ('NativeLegacyDisplay','NativeHidInput'):
