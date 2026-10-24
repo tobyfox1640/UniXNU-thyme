@@ -69,6 +69,21 @@ public:
 OSDefineMetaClassWithInit(ThymePlatformPower, ApplePMGR, )
 OSMetaClassConstructorInit(ThymePlatformPower, ApplePMGR, )
 OSDefineBasicStructors(ThymePlatformPower, ApplePMGR)
+// The donor kernelcache keeps the original ApplePMGR AON implementations in its
+// own vtable; the reference ports bind those two entries statically. Same donor
+// image and link layout here, so resolve them at runtime instead of hardcoding
+// the resulting function addresses. Entry 0 of the table is the class pointer.
+#define DONOR_APPLEPMGR_VTABLE 0xfffffff005ce26d8ULL
+uint32_t ThymePlatformPower::readAon()
+{
+  auto entry = *reinterpret_cast<const volatile uintptr_t *>(DONOR_APPLEPMGR_VTABLE + 320 * 8);
+  return reinterpret_cast<uint32_t (*)(ApplePMGR *)>(entry)(this);
+}
+void ThymePlatformPower::writeAon(uint64_t value)
+{
+  auto entry = *reinterpret_cast<const volatile uintptr_t *>(DONOR_APPLEPMGR_VTABLE + 321 * 8);
+  reinterpret_cast<void (*)(ApplePMGR *, uint64_t)>(entry)(this, value);
+}
 // The original object's storage exceeds kalloc_type's 16 KiB size limit.
 // Use XNU's existing zeroed, size-aware OSObject heap allocation pair.
 void *ThymePlatformPower::operator new(size_t size) { return OSObject::operator new(size); }

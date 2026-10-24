@@ -31,16 +31,14 @@ public:
 '''
 guards = ''
 for i in range(177, 340):
-    # Slots 320/321 are AON register access. The reference ports bind the
-    # donor's own implementations; thyme keeps them in the guarded set instead,
-    # so the archive has no undefined ApplePMGR symbol beyond the three the
-    # bindings provide and an unexpected call reports the exact slot.
-    if i == 320:
-        header += ' virtual uint32_t readAon() = 0;\n'
-        guards += f' uint32_t readAon() override {{ unavailable({i}); }}\n'
-    elif i == 321:
-        header += ' virtual void writeAon(uint64_t) = 0;\n'
-        guards += f' void writeAon(uint64_t) override {{ unavailable({i}); }}\n'
+    # Slots 320/321 are AON register access. AMFI really calls readAon(), so
+    # these two keep the donor's implementations: the class declares them
+    # without a guard and the source dispatches through the donor's own ApplePMGR
+    # vtable entries at runtime (same donor image and link layout as the
+    # reference ports, which bind these two symbols statically instead).
+    if i in (320, 321):
+        header += (' virtual uint32_t readAon();\n' if i == 320
+                   else ' virtual void writeAon(uint64_t);\n')
     else:
         header += f' virtual void opaque{i}() = 0;\n'
         guards += f' void opaque{i}() override {{ unavailable({i}); }}\n'
