@@ -15,6 +15,7 @@
 #include <IOKit/IOLib.h>
 #include <IOKit/IOPlatformExpert.h>
 #include <libkern/c++/OSSymbol.h>
+#include <libkern/OSKext.h>
 #include <mach/kmod.h>
 #include <pexpert/pexpert.h>
 
@@ -81,6 +82,21 @@ extern "C" void sheng_pmgr_run(void)
 {
   unsigned mode = 0;
   if (!PE_parse_boot_argn("thyme-pmgr", &mode, sizeof(mode)) || !mode) return;
+  // Diagnostic mode: report what the kext registry already knows at this call
+  // site (bsd_init, before IOKitBSDInit starts the prelinked kexts), because
+  // OSMetaClass::postModLoad() faults when it cannot find the module it was
+  // handed by preModLoad().
+  if (mode == 9) {
+    kern_return_t load = OSKextLoadKextWithIdentifier("com.apple.driver.ApplePMGR");
+    const OSMetaClass *parent = lookup("ApplePMGR");
+    const OSMetaClass *nubMeta = lookup("ApplePMGRNub");
+    const OSSymbol *name = OSSymbol::withCString(g_kernel_kmod_info.name);
+    OSKext *kext = name ? OSKext::lookupKextWithIdentifier(name) : nullptr;
+    panic("thyme-pmgr: load=%d kmod=%s kext=%p parent=%p(%u) nub=%p(%u) gmc=%p",
+          load, g_kernel_kmod_info.name, kext, parent,
+          parent ? parent->getClassSize() : 0, nubMeta,
+          nubMeta ? nubMeta->getClassSize() : 0, &ApplePMGR::gMetaClass);
+  }
   thyme_pmgr_observation[15] = mode;
   thyme_pmgr_observation[1] = static_cast<uint32_t>(kIOReturnError);
   if (mode > 3 || thyme_pmgr_observation[0]) { thyme_pmgr_checkpoint(); panic("ThymePlatformPower: invalid mode or duplicate initialization"); }
