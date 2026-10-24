@@ -23,8 +23,12 @@ CONFIG_XNU_ARMVIRT_PLATFORM=n
 # patches/xnu/sheng-platform-power.patch calls sheng_pmgr_run() from bsd_init()
 # for exactly this, and scripts/build-thyme-platform-power.py supplies it.
 CONFIG_XNU_SHENG_PMGR=y
-CONFIG_XNU_NATIVE_UFS=n
-CONFIG_XNU_NATIVE_AES=n
+# UFS is the only path to the root volume: the userdata partition holds the
+# OS/SystemOS images. NativeUfs builds on the qualified AES closure.
+CONFIG_XNU_NATIVE_UFS=y
+# Bind the source AES subclass to the original kernelcache methods; required by
+# NativeUfs (and by the verified-root stack later).
+CONFIG_XNU_NATIVE_AES=y
 CONFIG_XNU_NATIVE_VIRTIO_BLOCK=n
 CONFIG_XNU_NATIVE_RAM_BLOCK=n
 # Enabled by build_thyme_xnu.py for the prelinked --owner-root profile.

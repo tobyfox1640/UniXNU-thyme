@@ -21,6 +21,9 @@ archives = [
   "build-libpthread-kernel.py",
   "build-thyme-legacy-display.py",
   "build-thyme-platform-power.py",
+  "build-arm-driver.py NativeAES",
+  "build-native-aes-bindings.py",
+  "build-arm-driver.py NativeUfs",
 ]
 
 [ipsw]
