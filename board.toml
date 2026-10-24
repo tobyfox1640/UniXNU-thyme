@@ -53,6 +53,17 @@ roots = [
   "com.apple.security.sandbox",
 ]
 
+[userdata]
+# GPT entry 35 "userdata" of LUN 0 on this handset, read with a 4096-byte
+# logical block size (dd of /dev/block/sda, header at offset 4096).
+first_lba = 0x2a8000
+last_lba = 0x1d387fa
+lba_bytes = 4096
+windows = [
+  { name = "OS", component = "OS" },
+  { name = "SystemOS", component = "Cryptex1,SystemOS" },
+]
+
 [firmware]
 config = "thyme"
 dsc = "Platforms/Xiaomi/thymePkg/thyme.dsc"
