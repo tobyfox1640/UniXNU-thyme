@@ -20,9 +20,11 @@
 
 // Minimal declaration: the private OSKext header is not on this compile's
 // include path, and the diagnostic only needs the lookup entry point.
+class OSString;
 class OSKext {
 public:
-  static OSKext *lookupKextWithIdentifier(const OSSymbol *identifier);
+  // The kernel exports only the OSString overload; OSSymbol derives from it.
+  static OSKext *lookupKextWithIdentifier(OSString *identifier);
 };
 
 extern "C" {
@@ -96,7 +98,7 @@ extern "C" void sheng_pmgr_run(void)
     kern_return_t load = OSKextLoadKextWithIdentifier("com.apple.driver.ApplePMGR");
     const OSMetaClass *parent = lookup("ApplePMGR");
     const OSMetaClass *nubMeta = lookup("ApplePMGRNub");
-    const OSSymbol *name = OSSymbol::withCString(g_kernel_kmod_info.name);
+    OSSymbol *name = const_cast<OSSymbol *>(OSSymbol::withCString(g_kernel_kmod_info.name));
     OSKext *kext = name ? OSKext::lookupKextWithIdentifier(name) : nullptr;
     panic("thyme-pmgr: load=%d kmod=%s kext=%p parent=%p(%u) nub=%p(%u) gmc=%p",
           load, g_kernel_kmod_info.name, kext, parent,
