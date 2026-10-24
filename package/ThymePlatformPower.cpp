@@ -115,7 +115,12 @@ extern "C" void sheng_pmgr_run(void)
   if (!parent || parent != &ApplePMGR::gMetaClass || parent->getClassSize() != 0x4b8a8 ||
       !nubMeta || nubMeta->getClassSize() != 0x740) { thyme_pmgr_checkpoint(); return; }
   thyme_pmgr_observation[2] = parent->getClassSize();
-  void *handle = OSMetaClass::preModLoad(g_kernel_kmod_info.name);
+  // Register the class under the ApplePMGR kext, not under the kernel's own
+  // "__kernel__" pseudo-kmod: postModLoad() ends in myKext->addClass(), and the
+  // pseudo-kmod has no class set to add to (OSKext::addClass() then faults on a
+  // null field). The class really does belong to that kext, and the diagnostic
+  // run confirmed lookupKextWithIdentifier() resolves both identifiers.
+  void *handle = OSMetaClass::preModLoad("com.apple.driver.ApplePMGR");
   if (!handle) { thyme_pmgr_checkpoint(); return; }
   thyme_pmgr_static_init();
   result = OSMetaClass::postModLoad(handle);
