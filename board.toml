@@ -107,8 +107,8 @@ title = "Mi 10S - XNU bring-up"
 # Sum of the three FDT DRAM banks of this handset (0x80000000, 0xc0000000,
 # 0x180000000), excluding the reserved windows the bootloader carves out.
 dram_size = "0x1fbb00000"
-panic_screen = false
-timeout = -1
+panic_screen = true
+timeout = 10
 kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120"]
 
 [payload.adt]
