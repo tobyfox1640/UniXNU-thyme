@@ -8,7 +8,13 @@ CONFIG_XNU_SOURCE_PTHREAD=y
 CONFIG_XNU_ARM_DT_PLATFORM=y
 CONFIG_XNU_ARMCPU=y
 CONFIG_XNU_NATIVE_ARCH_TIMER=y
-CONFIG_XNU_CRYPTO_BOOTSTRAP="source"
+# "prelinked": the donor kernelcache's com.apple.kec.corecrypto (pulled in as a
+# dependency of AppleMobileFileIntegrity) initializes XNU's PRNG through real
+# OSKext startup. "source" would run the linked-in bootstrap first at
+# STARTUP(EARLY_BOOT) and trip prng_random.c's assert(!prng_ready) when the
+# donor kext registers a second time. Both providers stay linked; only the
+# early source entry is omitted.
+CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 
 # No QEMU platform or unqualified sheng hardware/root-volume paths.
 CONFIG_XNU_ARMVIRT_PLATFORM=n
