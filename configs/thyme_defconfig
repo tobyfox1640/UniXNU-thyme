@@ -32,7 +32,11 @@ CONFIG_XNU_THYME_VERIFIED_BLOCK=0
 # Bind the source AES subclass to the original kernelcache methods; required by
 # NativeUfs (and by the verified-root stack later).
 CONFIG_XNU_NATIVE_AES=y
-CONFIG_XNU_NATIVE_VIRTIO_BLOCK=n
+# The IOBlockStorageDevice KPI class has no implementation in the source kernel:
+# the bindings archive supplies its constructor, destructor, meta class and
+# vtable from the donor kernelcache. NativeUfs needs them (the same archive the
+# reference ports link), so the VirtIO component is what carries the bindings.
+CONFIG_XNU_NATIVE_VIRTIO_BLOCK=y
 CONFIG_XNU_NATIVE_RAM_BLOCK=n
 # Enabled by build_thyme_xnu.py for the prelinked --owner-root profile.
 CONFIG_XNU_TRUST_CACHE_RUNTIME=n

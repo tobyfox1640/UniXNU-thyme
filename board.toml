@@ -24,6 +24,7 @@ archives = [
   "build-arm-driver.py NativeAES",
   "build-native-aes-bindings.py",
   "build-arm-driver.py NativeUfs",
+  "build-native-virtio-bindings.py --component NativeVirtioBlock",
 ]
 
 [ipsw]
