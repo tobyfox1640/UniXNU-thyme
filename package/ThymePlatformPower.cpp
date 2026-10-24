@@ -55,6 +55,10 @@ __attribute__((noreturn)) static void unavailable(unsigned slot)
 class ThymePlatformPower : public ApplePMGR {
   OSDeclareDefaultStructors(ThymePlatformPower)
 public:
+  // AMFI reads the AON register state, so these two forward to the donor's own
+  // implementations (see the definitions below the class).
+  uint32_t readAon() override;
+  void writeAon(uint64_t) override;
   void enableCPUCore(unsigned, uint64_t) override { unavailable(168); }
   void enableCPUCore(unsigned) override { unavailable(169); }
   void disableCPUCore(unsigned) override { unavailable(170); }
