@@ -1,6 +1,8 @@
 # Xiaomi Mi 10S / SM8250: initial source-kernel configuration.
 # Early kernel entry/MMU/arm_vm_init verified on 2026-10-20; bring-up continues.
 # ArmCpu requires a source crypto provider and ArmDTPlatform.
+# The link needs the source archives ([kernel] archives of board.toml).
+CONFIG_XNU_BUILD_ARCHIVES=y
 CONFIG_XNU_SOURCE_CORECRYPTO14=y
 CONFIG_XNU_SOURCE_PTHREAD=y
 CONFIG_XNU_ARM_DT_PLATFORM=y
@@ -34,7 +36,9 @@ CONFIG_XNU_ZONE_PGZ_ALIGNMENT_PROBE=n
 # SM8250 implements PAN; copyin/copyout must manage it on exception entry.
 CONFIG_XNU_NATIVE_PAN=y
 CONFIG_XNU_BOOT_PROGRESS=n
-CONFIG_XNU_NATIVE_LEGACY_DISPLAY=n
+# On: the base patch set references the legacy display probes from bsd_init.c;
+# thyme links an empty stub until the real display stack is ported.
+CONFIG_XNU_NATIVE_LEGACY_DISPLAY=y
 CONFIG_XNU_NATIVE_MOBILE_DISPLAY=n
 CONFIG_XNU_NATIVE_ADRENO=n
 CONFIG_XNU_ADRENO_FIRMWARE_PROBE=n
