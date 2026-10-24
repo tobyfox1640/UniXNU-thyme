@@ -32,3 +32,25 @@ kernel_offset = 0x8000
 tags_offset = 0x1e00000
 pagesize = 4096
 header_version = 1
+
+[payload]
+volume = "THYMEXNU"
+size_mib = 64
+loader = "firmware"
+title = "Mi 10S - XNU bring-up"
+# Sum of the three FDT DRAM banks of this handset (0x80000000, 0xc0000000,
+# 0x180000000), excluding the reserved windows the bootloader carves out.
+dram_size = "0x1fbb00000"
+panic_screen = false
+timeout = -1
+kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120"]
+
+[payload.adt]
+tool = "scripts/make-thyme-adt.py"
+chip_id = "0x164"
+unique_chip_id = "generated"
+cpu_regs = "0,0x100,0x200,0x300,0x400,0x500,0x600,0x700"
+psci_method = "smc"
+owned_memory_size = "0x10000000"
+packed_data_ramdisk = false
+ipad_identity = false

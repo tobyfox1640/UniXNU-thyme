@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "device": "thyme",
+  "soc": "SM8250",
+  "model": "Qualcomm Technologies, Inc. xiaomi thyme",
+  "compatible": [
+    "qcom,kona-mtp",
+    "qcom,kona",
+    "qcom,mtp"
+  ],
+  "product_name": "Mi 10S",
+  "platform_chip_id": 356,
+  "memory_banks": [
+    {
+      "base": 2147483648,
+      "size": 1001390080
+    },
+    {
+      "base": 6442450944,
+      "size": 4294967296
+    },
+    {
+      "base": 3221225472,
+      "size": 3221225472
+    }
+  ],
+  "cpus": [
+    {
+      "affinity": 0,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 256,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 512,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 768,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 1024,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 1280,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 1536,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    },
+    {
+      "affinity": 1792,
+      "compatible": [
+        "qcom,kryo"
+      ]
+    }
+  ],
+  "psci": {
+    "compatible": "arm,psci-1.0",
+    "method": "smc"
+  },
+  "timer": {
+    "frequency_hz": 19200000,
+    "virtual_timer_intid": 27
+  },
+  "gic": {
+    "compatible": "arm,gic-v3",
+    "distributor": {
+      "base": 396361728,
+      "size": 65536
+    },
+    "redistributor": {
+      "base": 396754944,
+      "size": 1048576
+    },
+    "redistributor_stride": 131072
+  },
+  "framebuffer": {
+    "base": 2617245696,
+    "width": 1080,
+    "height": 2340,
+    "row_bytes": 4320,
+    "bits_per_pixel": 32,
+    "source": "attempt-15 GOP; passed separately in boot_args, not an ADT display driver"
+  },
+  "sources": {
+    "running_dtb_sha256": "71a8d3db3360db2867ea99c2646a3e72f11aa6ee3e4f31cbbe1007579d90bbea",
+    "evidence_snapshot": "20261020T040435517245Z",
+    "uefi_baseline_attempt": 15,
+    "uefi_fd_sha256": "e0acc39055bcfe5e349a5a5f405058a55d99a9f90c2b65c389ae37745156f9d6",
+    "uefi_console_sha256": "ee62de60d64a1dff110ec1ae3eb457307b1391a09e430fc0a96190546c6ddb83"
+  }
+}
