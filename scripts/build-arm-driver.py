@@ -101,7 +101,10 @@ if component == 'NativeAdreno':
 result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 (out / 'compile.log').write_text(result.stdout)
 if result.returncode:
-    raise SystemExit(result.stdout[-3500:])
+    # The tail alone can be all warnings; the diagnostics that matter are the
+    # lines clang marks as errors, so report those first and then the tail.
+    errors = [line for line in result.stdout.splitlines() if 'error:' in line]
+    raise SystemExit('\n'.join(errors[:40]) + '\n--- tail ---\n' + result.stdout[-2000:])
 data = destination.read_bytes()
 magic, cpu, subtype, kind, count, size = struct.unpack_from('<6I', data)
 if (magic, cpu, subtype, kind) != (0xfeedfacf, 0x100000c, 0, 1):
