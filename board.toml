@@ -20,6 +20,7 @@ archives = [
   "build-arm-driver.py ArmCpu",
   "build-libpthread-kernel.py",
   "build-thyme-legacy-display.py",
+  "build-thyme-platform-power.py",
 ]
 
 [ipsw]
@@ -86,7 +87,7 @@ title = "Mi 10S - XNU bring-up"
 dram_size = "0x1fbb00000"
 panic_screen = true
 timeout = 10
-kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120"]
+kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120", "thyme-pmgr=2"]
 
 [payload.adt]
 tool = "scripts/make-thyme-adt.py"

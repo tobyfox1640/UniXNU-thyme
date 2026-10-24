@@ -18,7 +18,11 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 
 # No QEMU platform or unqualified sheng hardware/root-volume paths.
 CONFIG_XNU_ARMVIRT_PLATFORM=n
-CONFIG_XNU_SHENG_PMGR=n
+# On: AppleMobileFileIntegrity refuses to load without an ApplePMGR service
+# (panic "AMFI: No PMGR" @ConfigurationSettings.cpp:235). The base patch
+# patches/xnu/sheng-platform-power.patch calls sheng_pmgr_run() from bsd_init()
+# for exactly this, and scripts/build-thyme-platform-power.py supplies it.
+CONFIG_XNU_SHENG_PMGR=y
 CONFIG_XNU_NATIVE_UFS=n
 CONFIG_XNU_NATIVE_AES=n
 CONFIG_XNU_NATIVE_VIRTIO_BLOCK=n
