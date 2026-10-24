@@ -15,9 +15,15 @@
 #include <IOKit/IOLib.h>
 #include <IOKit/IOPlatformExpert.h>
 #include <libkern/c++/OSSymbol.h>
-#include <libkern/OSKext.h>
 #include <mach/kmod.h>
 #include <pexpert/pexpert.h>
+
+// Minimal declaration: the private OSKext header is not on this compile's
+// include path, and the diagnostic only needs the lookup entry point.
+class OSKext {
+public:
+  static OSKext *lookupKextWithIdentifier(const OSSymbol *identifier);
+};
 
 extern "C" {
 extern kmod_info_t g_kernel_kmod_info;
