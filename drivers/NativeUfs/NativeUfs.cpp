@@ -1843,7 +1843,6 @@ bool NativeUfs::start (IOService *provider)
     return true;
   }
   if (rootMode && !probe) {
-    panic ("NATIVE_UFS diagnostics: root mode active, taking the controller");
     return startRoot (provider);
   }
   return false;
