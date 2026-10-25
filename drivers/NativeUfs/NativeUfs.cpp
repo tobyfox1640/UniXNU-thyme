@@ -1841,6 +1841,7 @@ bool NativeUfs::start (IOService *provider)
     return true;
   }
   if (rootMode && !probe) {
+    panic ("NATIVE_UFS diagnostics: root mode active, taking the controller");
     return startRoot (provider);
   }
   return false;
@@ -1877,13 +1878,11 @@ bool NativeUfs::startRoot (IOService *provider)
   for (unsigned i = 0; i < layout->windows; ++i) names[i] = layout->window[i].name;
   if (!ufsBuildRootPlan (names, layout->windows, gPublicationPlan)) {
     rootDiagnosticFailure ("root windows require distinct OS and SystemOS");
-    IOFree (layout, sizeof (RootLayout));
-    return false;
+    panic ("NATIVE_UFS step %u window plan rejected (%u windows)", native_ufs_root_step, layout->windows);
   }
   if (!IOService::start (provider)) {
     rootDiagnosticFailure ("root IOService start failed");
-    IOFree (layout, sizeof (RootLayout));
-    return false;
+    panic ("NATIVE_UFS step %u IOService start failed", native_ufs_root_step);
   }
   // Prepare all windows or publish none. Diagnostics never decide policy.
   gPending = 0;
