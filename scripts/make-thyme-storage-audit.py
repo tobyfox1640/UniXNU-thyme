@@ -130,7 +130,16 @@ entry = next(e for e in metadata['_PrelinkInfoDictionary']
 header = np.backed_offset(parent, entry['_PrelinkExecutableLoadAddr'], 32, len(kernel))
 module = np.macho(kernel, header)
 segments = {s['name']: s for s in module['segments'] if s['size']}
-text, const = segments['__TEXT_EXEC'], segments['__DATA_CONST']
+# The prelink moves every kext by the board's slide, so the extents recorded in
+# the donor image are not where the merged image keeps the code. Read at the
+# moved addresses; the pointers found inside are already relocated by the
+# prelink and are used as they are.
+import argparse as _argparse
+_ap = _argparse.ArgumentParser(description='thyme storage interface audit')
+_ap.add_argument('--slide', type=lambda v: int(v, 0), default=0)
+_args = _ap.parse_args()
+text = dict(segments['__TEXT_EXEC'], va=segments['__TEXT_EXEC']['va'] + _args.slide)
+const = dict(segments['__DATA_CONST'], va=segments['__DATA_CONST']['va'] + _args.slide)
 
 
 def read(va, length):
