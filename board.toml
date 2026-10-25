@@ -138,7 +138,11 @@ timeout = 10
 # native-ufs-root=1 is what makes the storage driver take the controller:
 # without it NativeUfs::start() returns before startRoot() and nothing is
 # ever published, which is indistinguishable from a hardware failure.
-kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120", "thyme-pmgr=2", "native-ufs-root=1"]
+kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120", "thyme-pmgr=2",
+               # The payload gate requires sheng-pmgr=2 before it will accept
+               # native-ufs-root=1, and the kernel links _sheng_pmgr_run (our
+               # ThymePlatformPower) for exactly that path.
+               "sheng-pmgr=2", "native-ufs-root=1"]
 
 [payload.adt]
 tool = "scripts/make-thyme-adt.py"
