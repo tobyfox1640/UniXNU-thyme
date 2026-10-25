@@ -346,8 +346,20 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
     // here. The boot chain read this same controller through the same SMMU before
     // handing over, so its firmware mapping is left alone and the DMA is attempted
     // with physical addresses as they are.
-    report[0] = 0xffffffffU;
-    report[1] = 0; report[2] = 0;
+    // sCR0.USFCFG=1 terminates unmatched streams with a fault, and the entries the
+    // boot chain used are not visible here. Clearing the bit makes an unmatched
+    // stream fall through instead, which is the behaviour this controller needs.
+    uint32_t scr0Before = read32 (smmu, 0x0);
+    write32 (smmu, 0x0, scr0Before & ~(1U << 10));
+    __asm__ volatile ("dsb sy" ::: "memory");
+    uint32_t scr0After = read32 (smmu, 0x0);
+    report[0] = scr0After;
+    report[1] = scr0Before;
+    report[2] = 0;
+    if (scr0After & (1U << 10)) {
+      panic ("NATIVE_UFS smmu: match array masked and sCR0 not writable (%08x -> %08x)",
+             scr0Before, scr0After);
+    }
     return;
   }
   if (false) {
