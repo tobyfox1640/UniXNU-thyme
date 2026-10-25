@@ -122,6 +122,17 @@ _args = _ap.parse_args()
 # comparison then describe the merged layout.
 exports = {va + _args.slide: names for va, names in np.exports(kernel, native).items()}
 by_name = {name: va for va, names in exports.items() for name in names}
+# The class dispatch table and the base methods are regular symbols, not dynamic
+# exports, so read the symbol table as well (the prelink leaves it at the donor's
+# addresses, hence the same shift).
+_symcmd = next(at for cmd, at, _ in native['commands'] if cmd == 2)
+_symoff, _nsyms, _stroff, _ = struct.unpack_from('<4I', kernel, _symcmd + 8)
+for _i in range(_nsyms):
+    _ix, _kind, _sect, _desc, _value = struct.unpack_from('<IBBHQ', kernel, _symoff + _i * 16)
+    if not _value:
+        continue
+    _name = kernel[_stroff + _ix:kernel.index(b'\0', _stroff + _ix)].decode()
+    by_name.setdefault(_name, _value + _args.slide)
 
 # The reference audit qualified its bounds from a prelink report plus a live gdb
 # observation and a companion AES audit, none of which exist for a new board.
