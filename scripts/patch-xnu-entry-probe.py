@@ -198,9 +198,12 @@ def assemble_c(source, va, workdir, symbols):
         if not any(base <= text and text + 256 <= base + size for base, size, _, _ in SEGMENTS):
             raise SystemExit('Invalid _boot_progress_panic_text')
         definitions.append(f'-DPANIC_TEXT={text:#x}UL')
-    subprocess.run([clang, '--target=aarch64-none-elf', '-ffreestanding', '-fno-builtin', '-fno-stack-protector',
-                    '-mgeneral-regs-only', '-fno-pic', '-mcmodel=tiny', '-Oz', f'-DVINFO={VINFO_VA:#x}UL',
-                    *definitions, f'-I{font_dir}', '-c', source, '-o', obj], check=True)
+    built = subprocess.run([clang, '--target=aarch64-none-elf', '-ffreestanding', '-fno-builtin', '-fno-stack-protector',
+                            '-mgeneral-regs-only', '-fno-pic', '-mcmodel=tiny', '-Oz', f'-DVINFO={VINFO_VA:#x}UL',
+                            *definitions, f'-I{font_dir}', '-c', source, '-o', obj],
+                           capture_output=True, text=True)
+    if built.returncode:
+        raise SystemExit(f'compiling {source} failed:\n{built.stdout}\n{built.stderr}')
     script = workdir / 'panic.ld'
     script.write_text('SECTIONS { . = %#x; .text : { *(.text.a_entry) *(.text.a_common) *(.text*) *(.rodata*) } /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) *(.ARM.*) } }\n' % va)
     size = shutil.which('llvm-size') or '/opt/homebrew/opt/llvm/bin/llvm-size'
@@ -229,8 +232,6 @@ def assemble_c(source, va, workdir, symbols):
             marker = int(parts[0], 16)
     if entry != load:
         raise SystemExit(f'panic_screen at {entry:#x} is not the first byte {load:#x}')
-    if marker is None:
-        raise SystemExit('the blob has no thyme_marker')
     return binary.read_bytes(), load, entry, marker
 
 
@@ -425,12 +426,12 @@ def main():
         struct.pack_into('<I', data, file_offset(common), branch(common, common_entry))
         # Point the driver's hook at the marker routine so a silent hang still shows
         # how far it got. The kernel carries the symbol; the blob cannot be linked.
-        slot = kernel_names.get('_thyme_marker')
+        slot = kernel_names.get('_thyme_vinfo')
         if slot is None:
-            raise SystemExit('the kernel does not export the thyme_marker hook')
-        struct.pack_into('<Q', data, file_offset(slot), marker)
+            raise SystemExit('the kernel does not export the thyme_vinfo hook')
+        struct.pack_into('<Q', data, file_offset(slot), VINFO_VA)
         description += (f', panic screen ({len(code):#x} bytes at {entry:#x}; common funnel at {common:#x};'
-                        f' stage marker at {marker:#x} into {slot:#x})')
+                        f' stage markers read vinfo at {VINFO_VA:#x} through {slot:#x})')
     args.kernel.write_bytes(data)
     # The probes rewrite instructions inside __TEXT/__TEXT_EXEC __text, which is
     # exactly the range the source CoreCrypto provider's normal POST HMAC covers

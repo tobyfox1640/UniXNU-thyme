@@ -52,8 +52,19 @@ volatile uint32_t native_ufs_root_step = 0;
 // Set by scripts/patch-xnu-entry-probe.py at payload build time to the marker
 // routine it patches into the kernel text. A silent hang then still leaves the
 // stages it reached on the screen.
-extern "C" void (*thyme_marker) (unsigned) = nullptr;
-static inline void THYME_STAGE (unsigned stage) { if (thyme_marker) thyme_marker (stage); }
+// Written by scripts/patch-xnu-entry-probe.py at payload build time with the kernel's
+// video info address; drawing here avoids needing a code cave in the kernel text.
+extern "C" unsigned long long thyme_vinfo = 0;
+static inline void THYME_STAGE (unsigned stage)
+{
+  struct vc_info { uint32_t height, width, depth, rowbytes; uint64_t baseaddr; };
+  if (!thyme_vinfo || stage > 63) return;
+  volatile struct vc_info *v = reinterpret_cast<volatile struct vc_info *> (thyme_vinfo);
+  uint8_t *base = reinterpret_cast<uint8_t *> (v->baseaddr);
+  if (!base || v->depth != 32) return;
+  *reinterpret_cast<volatile uint32_t *> (base + (uint64_t) 4 * v->rowbytes
+                                         + (uint64_t) (4 + stage * 8) * 4) = 0x00FF00U;
+}
 const char *volatile native_ufs_root_failure = nullptr;
 volatile uint32_t native_ufs_cap = 0;
 volatile uint32_t native_ufs_version = 0;
