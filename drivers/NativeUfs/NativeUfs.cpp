@@ -325,14 +325,27 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
   gRootDiagnostic.cbar = cbar; gRootDiagnostic.sctlr = sctlr;
   gRootDiagnostic.smmuId2 = read32 (smmu, 0x28);
   gRootDiagnostic.cba2r = read32 (smmu, 0x1800 + 4 * bank);
+  // Every SMR index in this SMMU reads as free yet none of them keeps a write,
+  // while the S2CR array beside it does. Probe both at several indices so the
+  // panic says whether the match array is missing, relocated or locked.
+  unsigned smrOk = 0, s2crOk = 0;
+  for (unsigned bit = 0; bit < 7; ++bit) {
+    unsigned idx = 1U << bit;
+    uint32_t want = 0x80000000U | (0x100U + idx);
+    write32 (smmu, 0x800 + 4 * idx, want);
+    if (read32 (smmu, 0x800 + 4 * idx) == want) smrOk |= 1U << bit;
+    write32 (smmu, 0xc00 + 4 * idx, idx);
+    if (read32 (smmu, 0xc00 + 4 * idx) == idx) s2crOk |= 1U << bit;
+  }
   if (failure) {
     gRootDiagnostic.stage = "SMMU readback";
     gRootDiagnostic.result = static_cast<uint32_t> (kIOReturnNotReady);
     rootDiagnosticFailure (failure);
     panic ("NATIVE_UFS smmu: %s idx=%u bank=%u pages=%u slot=%u tried=%u smr=%x s2cr=%x cba2r=%x "
-           "idr0=%08x idr1=%08x idr2=%08x stream=%x",
+           "idr0=%08x idr1=%08x idr2=%08x stream=%x smrOk=%02x s2crOk=%02x",
            failure, index, bank, plan.pages, plan.slot, tried, smr, s2cr, gRootDiagnostic.cba2r,
-           read32 (smmu, 0x20), read32 (smmu, 0x24), read32 (smmu, 0x28), (unsigned) stream);
+           read32 (smmu, 0x20), read32 (smmu, 0x24), read32 (smmu, 0x28), (unsigned) stream,
+           smrOk, s2crOk);
   }
   report[0] = index | (bank << 16);
   report[1] = cbar;
