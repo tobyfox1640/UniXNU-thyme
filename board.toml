@@ -135,7 +135,10 @@ title = "Mi 10S - XNU bring-up"
 dram_size = "0x1fbb00000"
 panic_screen = true
 timeout = 10
-kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120", "thyme-pmgr=2"]
+# native-ufs-root=1 is what makes the storage driver take the controller:
+# without it NativeUfs::start() returns before startRoot() and nothing is
+# ever published, which is indistinguishable from a hardware failure.
+kernel_args = ["-v", "keepsyms=1", "kt_fixed_zones=120", "thyme-pmgr=2", "native-ufs-root=1"]
 
 [payload.adt]
 tool = "scripts/make-thyme-adt.py"
