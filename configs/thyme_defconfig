@@ -46,7 +46,10 @@ CONFIG_XNU_VERIFIED_ROOT_PROBE=n
 # The UFS driver carries gRootDiagnostic and native_ufs_* counters but nothing
 # prints them; the owner root audit plus the boot progress checkpoints put the
 # stage it reaches on the screen, which is the only log channel available.
-CONFIG_XNU_OWNER_ROOT_AUDIT=y
+# The owner root audit and the boot progress checkpoints both require the
+# owner-verified block crypto closure, which needs the donor volume and keys;
+# stage visibility comes from the driver copy in drivers/NativeUfs instead.
+CONFIG_XNU_OWNER_ROOT_AUDIT=n
 CONFIG_XNU_OWNER_ROOT_TRUST=n
 CONFIG_XNU_OWNER_CACHE_MOUNT=n
 CONFIG_XNU_OWNER_CACHE_STARTUP=n
@@ -59,7 +62,7 @@ CONFIG_XNU_DT_PANIC_REGION=y
 CONFIG_XNU_ZONE_PGZ_ALIGNMENT_PROBE=n
 # SM8250 implements PAN; copyin/copyout must manage it on exception entry.
 CONFIG_XNU_NATIVE_PAN=y
-CONFIG_XNU_BOOT_PROGRESS=y
+CONFIG_XNU_BOOT_PROGRESS=n
 # On: the base patch set references the legacy display probes from bsd_init.c;
 # thyme links an empty stub until the real display stack is ported.
 CONFIG_XNU_NATIVE_LEGACY_DISPLAY=y
