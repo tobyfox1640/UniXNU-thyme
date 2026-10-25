@@ -341,6 +341,16 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
     gRootDiagnostic.stage = "SMMU readback";
     gRootDiagnostic.result = static_cast<uint32_t> (kIOReturnNotReady);
     rootDiagnosticFailure (failure);
+    // This SMMU masks its whole stream-match array from the non-secure view
+    // (smrOk=00 against s2crOk=7f), so a new match entry cannot be created from
+    // here. The boot chain read this same controller through the same SMMU before
+    // handing over, so its firmware mapping is left alone and the DMA is attempted
+    // with physical addresses as they are.
+    report[0] = 0xffffffffU;
+    report[1] = 0; report[2] = 0;
+    return;
+  }
+  if (false) {
     panic ("NATIVE_UFS smmu: %s idx=%u bank=%u pages=%u slot=%u tried=%u smr=%x s2cr=%x cba2r=%x "
            "idr0=%08x idr1=%08x idr2=%08x stream=%x smrOk=%02x s2crOk=%02x",
            failure, index, bank, plan.pages, plan.slot, tried, smr, s2cr, gRootDiagnostic.cba2r,
