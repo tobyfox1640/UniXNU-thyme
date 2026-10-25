@@ -29,7 +29,7 @@ archives = [
   # donor kernelcache's __PRELINK_INFO. The base audit cannot run here (it needs
   # a prelink report plus recorded live gdb/AES audits); see
   # docs/thyme-bringup-status.md. The bindings builder below reads the record.
-  "make-thyme-storage-audit.py --slide -0x1000000",
+  "make-thyme-storage-audit.py --slide=-0x1000000",
   "build-arm-driver.py NativeVirtioBlock",
   "build-native-virtio-bindings.py --component NativeVirtioBlock",
 ]
