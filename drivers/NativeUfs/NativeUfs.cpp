@@ -1851,6 +1851,8 @@ bool NativeUfs::startRoot (IOService *provider)
 {
   const char *why = "";
   native_ufs_root_step = 1;
+  // Temporary bring-up diagnostic: proves the root personality attached at all.
+  panic ("NATIVE_UFS diagnostics: startRoot entered");
   if (!hostBringUp (&why)) {
     rootDiagnosticFailure (why);
     panic ("NATIVE_UFS step %u bring-up failed: %s", native_ufs_root_step, why);
