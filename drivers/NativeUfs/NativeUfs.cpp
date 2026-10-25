@@ -314,8 +314,10 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
     gRootDiagnostic.stage = "SMMU readback";
     gRootDiagnostic.result = static_cast<uint32_t> (kIOReturnNotReady);
     rootDiagnosticFailure (failure);
-    panic ("NATIVE_UFS smmu: %s idx=%u bank=%u cba2r=%x", failure, index, bank,
-           gRootDiagnostic.cba2r);
+    panic ("NATIVE_UFS smmu: %s idx=%u bank=%u pages=%u slot=%u smr=%x s2cr=%x cba2r=%x "
+           "idr0=%08x idr1=%08x idr2=%08x stream=%x",
+           failure, index, bank, plan.pages, plan.slot, smr, s2cr, gRootDiagnostic.cba2r,
+           read32 (smmu, 0x20), read32 (smmu, 0x24), read32 (smmu, 0x28), (unsigned) stream);
   }
   report[0] = index | (bank << 16);
   report[1] = cbar;
