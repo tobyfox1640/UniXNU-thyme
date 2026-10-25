@@ -113,7 +113,14 @@ if not kernel_path.is_file():
     raise SystemExit(f'the donor kernelcache is not at {kernel_path}; the pre-build step places it')
 kernel = kernel_path.read_bytes()
 native = np.macho(kernel)
-exports = np.exports(kernel, native)
+import argparse as _argparse
+_ap = _argparse.ArgumentParser(description='thyme storage interface audit')
+_ap.add_argument('--slide', type=lambda v: int(v, 0), default=0)
+_args = _ap.parse_args()
+# The prelink moves the whole kext, and the donor symbol table still lists the
+# original addresses, so shift the table by the same amount. Both sides of every
+# comparison then describe the merged layout.
+exports = {va + _args.slide: names for va, names in np.exports(kernel, native).items()}
 by_name = {name: va for va, names in exports.items() for name in names}
 
 # The reference audit qualified its bounds from a prelink report plus a live gdb
@@ -134,10 +141,6 @@ segments = {s['name']: s for s in module['segments'] if s['size']}
 # the donor image are not where the merged image keeps the code. Read at the
 # moved addresses; the pointers found inside are already relocated by the
 # prelink and are used as they are.
-import argparse as _argparse
-_ap = _argparse.ArgumentParser(description='thyme storage interface audit')
-_ap.add_argument('--slide', type=lambda v: int(v, 0), default=0)
-_args = _ap.parse_args()
 text = dict(segments['__TEXT_EXEC'], va=segments['__TEXT_EXEC']['va'] + _args.slide)
 const = dict(segments['__DATA_CONST'], va=segments['__DATA_CONST']['va'] + _args.slide)
 
