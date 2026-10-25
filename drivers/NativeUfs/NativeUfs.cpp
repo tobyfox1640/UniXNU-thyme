@@ -356,8 +356,24 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
     report[0] = scr0After;
     report[1] = scr0Before;
     report[2] = 0;
-    if (scr0After & (1U << 10)) {
-      panic ("NATIVE_UFS smmu: match array masked and sCR0 not writable (%08x -> %08x)",
+    // The match array is masked from this view and sCR0 is locked, but the S2CR
+    // array is writable - the probe showed s2crOk=7f against smrOk=00. The entries
+    // the firmware owns are therefore still reachable by index: mark every match
+    // index as bypass so whichever one matches stream 0x60 stops translating for
+    // this controller. Indices without a match entry are inert.
+    uint32_t idr0 = read32 (smmu, 0x20);
+    unsigned entries = idr0 & 0xffU;
+    if (entries > 128) entries = 128;
+    unsigned bypassed = 0;
+    for (unsigned i = 0; i < entries; ++i) {
+      write32 (smmu, 0xc00 + 4 * i, 1U << 16);      // S2CR.TYPE = bypass
+      __asm__ volatile ("dsb sy" ::: "memory");
+      if ((read32 (smmu, 0xc00 + 4 * i) >> 16 & 3) == 1) ++bypassed;
+    }
+    report[1] = scr0Before;
+    report[2] = bypassed;
+    if (!bypassed) {
+      panic ("NATIVE_UFS smmu: match array masked, sCR0 not writable (%08x -> %08x) and no bypass set",
              scr0Before, scr0After);
     }
     return;
