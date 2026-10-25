@@ -63,7 +63,7 @@ static inline void THYME_STAGE (unsigned stage)
   if (thyme_vinfo == 0 || thyme_vinfo == 0xFFFFFFFFFFFFFFFFULL || stage > 63) return;
   volatile struct vc_info *v = reinterpret_cast<volatile struct vc_info *> (thyme_vinfo);
   uint8_t *base = reinterpret_cast<uint8_t *> (v->baseaddr);
-  if (!base || v->depth != 32) return;
+  if (!base) return;                 // depth is reported as XRGB8888 by the firmware
   *reinterpret_cast<volatile uint32_t *> (base + (uint64_t) 4 * v->rowbytes
                                          + (uint64_t) (4 + stage * 8) * 4) = 0x00FF00U;
 }
@@ -127,6 +127,7 @@ static bool contains (const char *data, size_t length, const char *needle)
 IOService *NativeUfs::probe (IOService *provider, SInt32 *score)
 {
   native_ufs_probe_calls = native_ufs_probe_calls + 1;
+  THYME_STAGE (0);                   // 0: the driver was reached
   if (OSDynamicCast (IOPlatformExpertDevice, provider)) {
     // Second personality (KernelConfigTables: IOMatchCategory NativeUfsRoot): attaches to the
     // root device, which starts before the platform expert publishes IOResources, so the
