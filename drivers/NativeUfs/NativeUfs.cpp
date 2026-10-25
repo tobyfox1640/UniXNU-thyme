@@ -298,12 +298,27 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
   }
   unsigned bank = plan.bank, index = plan.slot;
   uintptr_t cb = smmu + (plan.pages + bank) * 4096;
-  const char *failure = configureUfsSmmu (plan, stream,
-    [smmu](unsigned offset) { return read32 (smmu, offset); },
-    [smmu](unsigned offset, uint32_t value) {
-      write32 (smmu, offset, value);
-      __asm__ volatile ("dsb sy" ::: "memory");
-    });
+  auto smmuRead = [smmu](unsigned offset) { return read32 (smmu, offset); };
+  auto smmuWrite = [smmu](unsigned offset, uint32_t value) {
+    write32 (smmu, offset, value);
+    __asm__ volatile ("dsb sy" ::: "memory");
+  };
+  const char *failure = configureUfsSmmu (plan, stream, smmuRead, smmuWrite);
+  // Thyme reads back IDR0 NUMSMRG=87 and IDR1 NUMCB=74 - both plausible - yet the
+  // S2CR at the plan's slot sticks while the SMR beside it reads back zero, so the
+  // high match slots are not writable here. Retry the low free slots (every SMR in
+  // this SMMU reads as free) before giving up.
+  unsigned tried = 1;
+  for (unsigned attempt = 0; failure && attempt < 16; ++attempt) {
+    if (attempt == index) continue;
+    UfsSmmuPlan retry = plan;
+    retry.slot = attempt;
+    retry.reuse = false;
+    const char *next = configureUfsSmmu (retry, stream, smmuRead, smmuWrite);
+    tried++;
+    if (!next) { plan = retry; index = attempt; failure = nullptr; break; }
+  }
+  (void) tried;
   uint32_t smr = read32 (smmu, 0x800 + 4 * index), s2cr = read32 (smmu, 0xc00 + 4 * index);
   uint32_t cbar = read32 (smmu, 0x1000 + 4 * bank), sctlr = read32 (cb, 0x0);
   gRootDiagnostic.smr = smr; gRootDiagnostic.s2cr = s2cr;
@@ -314,9 +329,9 @@ static void smmuBypassStream (uint16_t stream, OSSharedPtr<IOMemoryMap> &keep, u
     gRootDiagnostic.stage = "SMMU readback";
     gRootDiagnostic.result = static_cast<uint32_t> (kIOReturnNotReady);
     rootDiagnosticFailure (failure);
-    panic ("NATIVE_UFS smmu: %s idx=%u bank=%u pages=%u slot=%u smr=%x s2cr=%x cba2r=%x "
+    panic ("NATIVE_UFS smmu: %s idx=%u bank=%u pages=%u slot=%u tried=%u smr=%x s2cr=%x cba2r=%x "
            "idr0=%08x idr1=%08x idr2=%08x stream=%x",
-           failure, index, bank, plan.pages, plan.slot, smr, s2cr, gRootDiagnostic.cba2r,
+           failure, index, bank, plan.pages, plan.slot, tried, smr, s2cr, gRootDiagnostic.cba2r,
            read32 (smmu, 0x20), read32 (smmu, 0x24), read32 (smmu, 0x28), (unsigned) stream);
   }
   report[0] = index | (bank << 16);
