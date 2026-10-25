@@ -24,7 +24,6 @@ archives = [
   "build-arm-driver.py NativeAES",
   "build-native-aes-bindings.py",
   "build-arm-driver.py NativeUfs",
-  "build-boot-progress.py",
   # Writes build/storage-abi/interface-audit.json: compiles the public
   # IOStorageFamily reference class and measures the original one inside the
   # donor kernelcache's __PRELINK_INFO. The base audit cannot run here (it needs
