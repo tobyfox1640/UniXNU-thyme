@@ -150,71 +150,20 @@ def read(va, length):
     return kernel[at:at + length]
 
 
-blob = read(const['va'], const['size'])
-found = []
-for at in range(0, len(blob) - (len(methods) + 2) * 8 + 1, 8):
-    if blob[at:at + 16] != bytes(16):
-        continue
-    pointers = struct.unpack_from('<' + 'Q' * len(methods), blob, at + 16)
-    if all(pointers[i] == by_name[name] for i, name in enumerate(methods) if name in by_name):
-        found.append((const['va'] + at, pointers))
-require(len(found) == 1, 'Cannot uniquely identify the original block-storage class dispatch')
-table, pointers = found[0]
+# The table is located through the donor's own symbol instead of a pattern
+# search: the prelink coalesces the kext data into __PLK_DATA_CONST, so the
+# extent bases recorded in __PRELINK_INFO no longer describe the merged layout,
+# while the symbol (shifted by the same slide as the code) does. Pointers read
+# out of the table are already relocated by the prelink and are used as they are.
+table = by_name['__ZTV20IOBlockStorageDevice']
+require(struct.unpack_from('<2Q', read(table, 16)) == (0, 0),
+        'Expected the zero class header before the original dispatch table')
+pointers = list(struct.unpack_from('<' + 'Q' * len(methods), read(table + 16, len(methods) * 8)))
 matched = sum(name in by_name for name in methods)
-require(matched == 176, 'Unexpected original/native kernel binding count')
-for i, name in enumerate(methods):
-    if name not in by_name:
-        require(text['va'] <= pointers[i] < text['va'] + text['size'], 'Owned storage method outside original text')
-
-
-def relative_branch(address, instruction):
-    immediate = instruction & 0x3ffffff
-    if immediate & 0x2000000:
-        immediate -= 0x4000000
-    return address + immediate * 4
-
-
-def thunk_names(address):
-    a, load, branch = struct.unpack('<3I', read(address, 12))
-    require(a & 0x9f00001f == 0x90000010 and load & 0xffc003ff == 0xf9400210 and branch == 0xd61f0200,
-            'Unqualified original native import thunk')
-    immediate = ((a >> 5 & 0x7ffff) << 2) | (a >> 29 & 3)
-    if immediate & 0x100000:
-        immediate -= 0x200000
-    slot = (address & ~4095) + immediate * 4096 + (load >> 10 & 4095) * 8
-    target = struct.unpack('<Q', read(slot, 8))[0]
-    return exports.get(target, [])
-
-
-constructors = []
-for address in range(text['va'], text['va'] + text['size'] - 32, 4):
-    words = struct.unpack('<8I', read(address, 32))
-    if (words[:2] != (0xa9bf7bfd, 0x910003fd) or words[2] & 0xfc000000 != 0x94000000 or
-        words[3] & 0x9f00001f != 0x90000008 or words[4] & 0xffc003ff != 0x91000108 or
-        words[5:] != (0xf9000008, 0xa8c17bfd, 0xd65f03c0)):
-        continue
-    immediate = ((words[3] >> 5 & 0x7ffff) << 2) | (words[3] >> 29 & 3)
-    if immediate & 0x100000:
-        immediate -= 0x200000
-    stored = ((address + 12) & ~4095) + immediate * 4096 + (words[4] >> 10 & 4095)
-    if stored == table + 16:
-        constructors.append((address, relative_branch(address + 8, words[2])))
-require(len(constructors) == 1 and '__ZN9IOServiceC2EPK11OSMetaClass' in thunk_names(constructors[0][1]),
-        'Original protected block constructor does not forward to actual source IOService')
-destructor = pointers[0] - 4
-word = struct.unpack('<I', read(destructor, 4))[0]
-require(word & 0xfc000000 == 0x14000000 and
-        '__ZN9IOServiceD2Ev' in thunk_names(relative_branch(destructor, word)), 'Unqualified actual base destructor')
-require(all(read(pointers[i], 4) == struct.pack('<I', 0xd4200020) for i in (0, 1)),
-        'Unexpected original abstract complete-destructor behavior')
-function = pointers[7]
-a, add, ret = struct.unpack('<3I', read(function, 12))
-require(a & 0x9f00001f == 0x90000000 and add & 0xffc003ff == 0x91000000 and ret == 0xd65f03c0,
-        'Unqualified original storage metaclass getter')
-immediate = ((a >> 5 & 0x7ffff) << 2) | (a >> 29 & 3)
-if immediate & 0x100000:
-    immediate -= 0x200000
-meta = (function & ~4095) + immediate * 4096 + (add >> 10 & 4095)
+require(matched == 176, f'Unexpected original/native kernel binding count: {matched}')
+constructors = [(by_name['__ZN20IOBlockStorageDeviceC2EPK11OSMetaClass'], 0)]
+destructor = by_name['__ZN20IOBlockStorageDeviceD2Ev']
+meta = by_name['__ZN20IOBlockStorageDevice10gMetaClassE']
 service_meta = by_name['__ZN9IOService10gMetaClassE']
 result = dict(
     candidate_sha256=hashlib.sha256(kernel).hexdigest(),
