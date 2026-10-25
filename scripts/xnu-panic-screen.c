@@ -215,6 +215,31 @@ static void hex (struct ctx *g, const char *label, u64 v)
 }
 
 /* x0 = fmt as for panic(); x1 is set by the stub to the entry stack pointer. */
+
+/* Bring-up stage marker: paints the index-th square in the top row of the screen.
+ * A silent hang then still says how far the kernel (or a driver) got, which the
+ * panic screen alone cannot show. Uses the same video info as the panic screen. */
+__attribute__((used, noinline, section(".text.c_marker"))) void thyme_marker (unsigned index)
+{
+  volatile struct vc_info *v = (volatile struct vc_info *)VINFO;
+  u8 *base = (u8 *)v->v_baseaddr;
+  u32 rb, x0, y, dx, dy;
+
+  if (base == 0 || v->v_depth != 32 || index > 63) {
+    return;
+  }
+  rb = v->v_rowbytes;
+  x0 = 8 + index * 20;
+  if (x0 + 16 >= v->v_width) {
+    return;
+  }
+  for (dy = 0; dy < 16; dy++) {
+    for (dx = 0; dx < 16; dx++) {
+      *(volatile u32 *)(base + (u64)(8 + dy) * rb + (u64)(x0 + dx) * 4) = 0x00FF00u;
+    }
+  }
+}
+
 __attribute__((noreturn, used, section(".text.b_main"))) void panic_screen_main (const char *fmt, const u64 *args)
 {
   volatile struct vc_info *v = (volatile struct vc_info *)VINFO;

@@ -49,6 +49,11 @@ volatile uint32_t native_ufs_mapped = 0;
 volatile uint32_t native_ufs_status = 0;
 // Root start: 1 entered, 2 host up, 3 layout found; the last soft-failure reason (a static string), for the boot page.
 volatile uint32_t native_ufs_root_step = 0;
+// Set by scripts/patch-xnu-entry-probe.py at payload build time to the marker
+// routine it patches into the kernel text. A silent hang then still leaves the
+// stages it reached on the screen.
+extern "C" void (*thyme_marker) (unsigned) = nullptr;
+static inline void THYME_STAGE (unsigned stage) { if (thyme_marker) thyme_marker (stage); }
 const char *volatile native_ufs_root_failure = nullptr;
 volatile uint32_t native_ufs_cap = 0;
 volatile uint32_t native_ufs_version = 0;
@@ -1919,11 +1924,13 @@ bool NativeUfs::startRoot (IOService *provider)
 {
   const char *why = "";
   native_ufs_root_step = 1;
+  THYME_STAGE (1);
   if (!hostBringUp (&why)) {
     rootDiagnosticFailure (why);
     panic ("NATIVE_UFS step %u bring-up failed: %s", native_ufs_root_step, why);
   }
   native_ufs_root_step = 2;
+  THYME_STAGE (2);
   RootLayout *layout = static_cast<RootLayout *> (IOMalloc (sizeof (RootLayout)));
   if (!layout || !findRootLayout (layout, &why)) {
     rootDiagnosticFailure (layout ? why : "root layout allocation failed");
@@ -1932,6 +1939,7 @@ bool NativeUfs::startRoot (IOService *provider)
     return false;
   }
   native_ufs_root_step = 3;
+  THYME_STAGE (3);
   if (layout->manifestStatus != 0) {
     rootDiagnosticFailure ("root manifest rejected");
     panic ("NATIVE_UFS step %u manifest status %u magic %08x %08x", native_ufs_root_step,

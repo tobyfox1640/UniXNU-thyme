@@ -220,13 +220,18 @@ def assemble_c(source, va, workdir, symbols):
     if load is None or load < va:
         raise SystemExit('Cannot find where the linker put .text')
     entry = None
+    marker = None
     for line in subprocess.run([nm, elf], capture_output=True, text=True, check=True).stdout.splitlines():
         parts = line.split()
         if len(parts) == 3 and parts[2] == 'panic_screen':
             entry = int(parts[0], 16)
+        if len(parts) == 3 and parts[2] == 'thyme_marker':
+            marker = int(parts[0], 16)
     if entry != load:
         raise SystemExit(f'panic_screen at {entry:#x} is not the first byte {load:#x}')
-    return binary.read_bytes(), load, entry
+    if marker is None:
+        raise SystemExit('the blob has no thyme_marker')
+    return binary.read_bytes(), load, entry, marker
 
 
 def panic_common_entry(workdir, code, load):
@@ -406,7 +411,7 @@ def main():
         if word(PANIC_VA) in (0, 0xFFFFFFFF) or any(data[file_offset(PANIC_CAVE):file_offset(PANIC_CAVE_END)]):
             raise SystemExit('panic() or the panic screen padding is not as expected')
         with tempfile.TemporaryDirectory() as tmp:
-            code, load, entry = assemble_c(ROOT / 'scripts/xnu-panic-screen.c', PANIC_CAVE, Path(tmp), kernel_names)
+            code, load, entry, marker = assemble_c(ROOT / 'scripts/xnu-panic-screen.c', PANIC_CAVE, Path(tmp), kernel_names)
             common_entry = panic_common_entry(Path(tmp), code, load)
         if load + len(code) > PANIC_CAVE_END:
             raise SystemExit(f'panic screen is {len(code):#x} bytes at {load:#x}, the padding ends at {PANIC_CAVE_END:#x}')
@@ -418,7 +423,14 @@ def main():
         if common is None or word(common) in (0, 0xFFFFFFFF):
             raise SystemExit('Common panic funnel is missing; refuse a partially covered panic screen')
         struct.pack_into('<I', data, file_offset(common), branch(common, common_entry))
-        description += f', panic screen ({len(code):#x} bytes at {entry:#x}; common funnel at {common:#x})'
+        # Point the driver's hook at the marker routine so a silent hang still shows
+        # how far it got. The kernel carries the symbol; the blob cannot be linked.
+        slot = kernel_names.get('_thyme_marker')
+        if slot is None:
+            raise SystemExit('the kernel does not export the thyme_marker hook')
+        struct.pack_into('<Q', data, file_offset(slot), marker)
+        description += (f', panic screen ({len(code):#x} bytes at {entry:#x}; common funnel at {common:#x};'
+                        f' stage marker at {marker:#x} into {slot:#x})')
     args.kernel.write_bytes(data)
     # The probes rewrite instructions inside __TEXT/__TEXT_EXEC __text, which is
     # exactly the range the source CoreCrypto provider's normal POST HMAC covers
